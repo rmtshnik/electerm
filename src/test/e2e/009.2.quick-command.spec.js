@@ -15,6 +15,46 @@ const extendClient = require('./common/client-extend')
 const { getTerminalContent } = require('./common/basic-terminal-test')
 
 describe('quick commands execution', function () {
+  it('should search, select and insert commands using only the keyboard', async function () {
+    const electronApp = await electron.launch(appOptions)
+    try {
+      const client = await electronApp.firstWindow()
+      extendClient(client, electronApp)
+      await delay(3500)
+      await client.evaluate(() => {
+        for (const n of [1, 2]) {
+          window.store.addQuickCommand({
+            id: 'keyboard-qm-' + n,
+            name: 'Keyboard palette ' + n,
+            inputOnly: true,
+            commands: [{ command: 'echo KEYBOARD' + n, delay: 100 }]
+          })
+        }
+        window.store.focus()
+      })
+      await client.keyboard.press('Control+Space')
+      const input = client.locator('.quick-command-palette input')
+      await expect(input).toBeFocused()
+      await client.keyboard.type('Keyboard palette')
+      await expect(client.locator('.quick-command-palette-results button')).toHaveCount(2)
+      await client.keyboard.press('ArrowDown')
+      await client.keyboard.press('Enter')
+      await expect(input).toHaveCount(0)
+      await expect(client.locator('.session-current .xterm-helper-textarea')).toBeFocused()
+      await expect.poll(() => getTerminalContent(client)).toContain('echo KEYBOARD2')
+      await client.keyboard.press('Control+Space')
+      await expect(input).toBeFocused()
+      await client.keyboard.type('no-matching-quick-command')
+      await client.keyboard.press('Enter')
+      await expect(input).toBeFocused()
+      await client.keyboard.press('Escape')
+      await expect(input).toHaveCount(0)
+      await expect(client.locator('.session-current .xterm-helper-textarea')).toBeFocused()
+    } finally {
+      await electronApp.close().catch(console.log)
+    }
+  })
+
   it('should execute quick command when clicked in quick command box', async function () {
     const electronApp = await electron.launch(appOptions)
     const client = await electronApp.firstWindow()
