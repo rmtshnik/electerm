@@ -74,6 +74,9 @@ jobs:
           retention-days: 14
 
   release:
+    # GitHub's built-in token cannot publish workflow changes from a feature branch.
+    # Feature branches retain downloadable build artifacts; master publishes releases.
+    if: github.ref_name == github.event.repository.default_branch
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -106,4 +109,8 @@ jobs:
           Перед тестированием сохраните резервную копию настроек electerm. Проверьте локальный терминал, SSH/SFTP и Ctrl+Space: поиск, стрелки, Enter, Esc, режим «только ввод».
           Контрольные суммы файлов: SHA256SUMS.txt.
           NOTES
-          gh release create "$tag" release-files/* --target "$GITHUB_SHA" --prerelease --title "electerm $version — тестовые сборки форка №${GITHUB_RUN_NUMBER}" --notes-file release-notes.md
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" release-files/* --clobber
+          else
+            gh release create "$tag" release-files/* --target "$GITHUB_SHA" --prerelease --title "electerm $version — тестовые сборки форка №${GITHUB_RUN_NUMBER}" --notes-file release-notes.md
+          fi
