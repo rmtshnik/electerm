@@ -31,6 +31,10 @@
     "lock": "npm i --package-lock-only"
   },
   "license": "MIT",
+  "fork": {
+    "repository": "https://github.com/rmtshnik/electerm",
+    "disableUpstreamUpdates": true
+  },
   "languageRepo": "https://github.com/electerm/electerm-locales",
   "privacyNoticeLink": "https://github.com/electerm/electerm/wiki/privacy-notice",
   "knownIssuesLink": "https://github.com/electerm/electerm/wiki/Know-issues",

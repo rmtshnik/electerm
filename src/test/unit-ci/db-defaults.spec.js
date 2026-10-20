@@ -278,11 +278,12 @@ describe('default terminal command history', () => {
     assert.equal(new Set(history.map(h => h.cmd)).size, history.length)
   })
 
-  it('is stored backwards so the popover shows ls first', () => {
+  it('is stored backwards so the popover shows the first platform command first', () => {
     // components/footer/cmd-history.jsx renders the array reversed, newest first
     const shown = history.slice().reverse().map(h => h.cmd)
-    assert.equal(shown[0], 'ls -alh')
-    assert.equal(history[history.length - 1].cmd, 'ls -alh')
+    const expected = isWin ? windowsCommands[0].commands[0].command : 'ls -alh'
+    assert.equal(shown[0], expected)
+    assert.equal(history[history.length - 1].cmd, expected)
   })
 
   it('is derived, not hand written', () => {
