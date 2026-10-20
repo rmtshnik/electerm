@@ -52,6 +52,7 @@ permissions:
 
 jobs:
   sync:
+    if: ${{ github.repository == 'electerm/electerm' }}
     runs-on: ubuntu-latest
     environment: build
     env:

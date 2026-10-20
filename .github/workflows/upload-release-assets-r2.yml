@@ -6,6 +6,7 @@ on:
     branches: [ r2 ]
 jobs:
   upload-to-r2:
+    if: ${{ github.repository == 'electerm/electerm' }}
     runs-on: ubuntu-latest
     environment: build
     steps:
