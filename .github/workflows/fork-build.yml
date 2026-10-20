@@ -97,7 +97,7 @@ jobs:
           cat > release-notes.md <<'NOTES'
           Тестовые сборки rmtshnik/electerm с палитрой команд Ctrl+Space.
 
-          Windows x64: setup.exe — установщик; windows-x64.zip — архив приложения.
+          Windows x64: setup.exe — установщик; win-x64.zip — архив приложения.
           macOS: mac-x64.dmg для Intel, mac-arm64.dmg для Apple Silicon. Откройте DMG и перенесите electerm в «Программы».
           Linux x64: .deb для Ubuntu/Debian, .AppImage или .tar.gz для других дистрибутивов.
 
