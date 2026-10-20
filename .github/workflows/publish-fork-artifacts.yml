@@ -1,0 +1,51 @@
+name: Прикрепить готовые сборки к выпуску
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Номер запуска Actions с готовыми артефактами
+        required: true
+        default: '39477741032'
+      tag:
+        description: Тег уже созданного выпуска
+        required: true
+        default: fork-v5.6.10-test.2
+  push:
+    branches: [codex/quick-command-keyboard]
+    paths: [.github/workflows/publish-fork-artifacts.yml]
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  upload:
+    if: github.repository == 'rmtshnik/electerm'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      SOURCE_RUN: ${{ inputs.run_id || '39477741032' }}
+      RELEASE_TAG: ${{ inputs.tag || 'fork-v5.6.10-test.2' }}
+    steps:
+      - name: Проверить исходный коммит и результаты сборок
+        shell: bash
+        run: |
+          source_sha=$(gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN" --jq '.head_sha')
+          tag_sha=$(gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')
+          test "$source_sha" = "$tag_sha"
+          count=$(gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN/jobs?per_page=100" --jq '[.jobs[] | select((.name | startswith("build (")) and .conclusion == "success")] | length')
+          test "$count" = 4
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN }}
+          path: release-files
+          merge-multiple: true
+      - name: Прикрепить установщики и контрольные суммы
+        shell: bash
+        run: |
+          cd release-files
+          sha256sum * > SHA256SUMS.txt
+          gh release upload "$RELEASE_TAG" ./* --clobber
