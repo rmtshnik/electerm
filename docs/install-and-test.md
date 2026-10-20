@@ -25,14 +25,14 @@
 Ubuntu/Debian:
 
 ```bash
-sudo apt install ./electerm-fork-ВЕРСИЯ-linux-x64.deb
+sudo apt install ./electerm-fork-ВЕРСИЯ-linux-amd64.deb
 ```
 
 Либо AppImage:
 
 ```bash
-chmod +x ./electerm-fork-ВЕРСИЯ-linux-x64.AppImage
-./electerm-fork-ВЕРСИЯ-linux-x64.AppImage
+chmod +x ./electerm-fork-ВЕРСИЯ-linux-x86_64.AppImage
+./electerm-fork-ВЕРСИЯ-linux-x86_64.AppImage
 ```
 
 При отсутствии FUSE можно распаковать AppImage через `--appimage-extract` и запустить `squashfs-root/AppRun`. Поддержка конкретного дистрибутива зависит от системных библиотек. Архив TAR.GZ распакуйте в отдельную папку и запустите файл `electerm` внутри неё.
