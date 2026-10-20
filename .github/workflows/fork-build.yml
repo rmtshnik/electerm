@@ -46,7 +46,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Установить зависимости сборки
-        run: npm ci --ignore-scripts
+        run: npm ci --ignore-scripts --legacy-peer-deps
       - name: Проверить дополнения форка
         run: node --test src/test/unit-ci/fork-update-policy.spec.js src/test/unit-ci/db-defaults.spec.js
       - name: Собрать интерфейс
@@ -57,7 +57,7 @@ jobs:
       - name: Подготовить приложение
         run: |
           node src/build/bin/prepare-fork-build.js
-          npm --prefix work/app ci --omit=dev --ignore-scripts
+          npm --prefix work/app ci --omit=dev --ignore-scripts --legacy-peer-deps
       - name: Собрать дистрибутивы
         run: node node_modules/electron-builder/cli.js --config work/fork-builder.json --${{ matrix.platform }} --${{ matrix.arch }} --publish never
       - uses: actions/upload-artifact@v4

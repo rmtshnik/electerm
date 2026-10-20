@@ -47,8 +47,8 @@ jobs:
       - name: Установить зависимости
         if: steps.merge.outputs.changed == 'true'
         run: |
-          npm ci
-          npm install --no-save --package-lock=false @serialport/binding-mock
+          npm ci --legacy-peer-deps
+          npm install --no-save --package-lock=false --legacy-peer-deps @serialport/binding-mock
       - name: Проверить код и модульные тесты
         if: steps.merge.outputs.changed == 'true'
         run: |
