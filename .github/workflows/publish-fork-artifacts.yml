@@ -11,9 +11,6 @@ on:
         description: Тег уже созданного выпуска
         required: true
         default: fork-v5.6.10-test.2
-  push:
-    branches: [codex/quick-command-keyboard]
-    paths: [.github/workflows/publish-fork-artifacts.yml]
 
 permissions:
   actions: read
@@ -33,7 +30,7 @@ jobs:
         shell: bash
         run: |
           source_sha=$(gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN" --jq '.head_sha')
-          tag_sha=$(gh api "repos/$GH_REPO/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')
+          tag_sha=$(gh api "repos/$GH_REPO/commits/$RELEASE_TAG" --jq '.sha')
           test "$source_sha" = "$tag_sha"
           count=$(gh api "repos/$GH_REPO/actions/runs/$SOURCE_RUN/jobs?per_page=100" --jq '[.jobs[] | select((.name | startswith("build (")) and .conclusion == "success")] | length')
           test "$count" = 4
