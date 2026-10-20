@@ -1,0 +1,109 @@
+name: Сборки форка
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master, codex/quick-command-keyboard]
+    paths-ignore: ['docs/**', '**/*.md']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fork-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.repository == 'rmtshnik/electerm'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            platform: win
+            arch: x64
+          - os: macos-15-intel
+            platform: mac
+            arch: x64
+          - os: macos-15
+            platform: mac
+            arch: arm64
+          - os: ubuntu-24.04
+            platform: linux
+            arch: x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Установить зависимости сборки
+        run: npm ci --ignore-scripts
+      - name: Проверить дополнения форка
+        run: node --test src/test/unit-ci/fork-update-policy.spec.js src/test/unit-ci/db-defaults.spec.js
+      - name: Собрать интерфейс
+        run: |
+          npm run vite-build
+          node src/build/bin/copy.js
+          node src/build/bin/pug.js
+      - name: Подготовить приложение
+        run: |
+          node src/build/bin/prepare-fork-build.js
+          npm --prefix work/app ci --omit=dev --ignore-scripts
+      - name: Собрать дистрибутивы
+        run: node node_modules/electron-builder/cli.js --config work/fork-builder.json --${{ matrix.platform }} --${{ matrix.arch }} --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: electerm-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            dist/fork/*.exe
+            dist/fork/*.zip
+            dist/fork/*.dmg
+            dist/fork/*.deb
+            dist/fork/*.AppImage
+            dist/fork/*.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-files
+          merge-multiple: true
+      - name: Опубликовать предварительный выпуск
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          version=$(node -p "require('./package.json').version")
+          tag="fork-v$version-test.${GITHUB_RUN_NUMBER}"
+          cd release-files
+          sha256sum * > SHA256SUMS.txt
+          cd ..
+          cat > release-notes.md <<'NOTES'
+          Тестовые сборки rmtshnik/electerm с палитрой команд Ctrl+Space.
+
+          Windows x64: setup.exe — установщик; windows-x64.zip — архив приложения.
+          macOS: mac-x64.dmg для Intel, mac-arm64.dmg для Apple Silicon. Откройте DMG и перенесите electerm в «Программы».
+          Linux x64: .deb для Ubuntu/Debian, .AppImage или .tar.gz для других дистрибутивов.
+
+          Эти тестовые сборки не имеют доверенной подписи издателя; macOS не нотарифицирована. ОС может запросить разрешение на запуск. Автоматическое обновление официальными сборками отключено.
+
+          Перед тестированием сохраните резервную копию настроек electerm. Проверьте локальный терминал, SSH/SFTP и Ctrl+Space: поиск, стрелки, Enter, Esc, режим «только ввод».
+          Контрольные суммы файлов: SHA256SUMS.txt.
+          NOTES
+          gh release create "$tag" release-files/* --target "$GITHUB_SHA" --prerelease --title "electerm $version — тестовые сборки форка №${GITHUB_RUN_NUMBER}" --notes-file release-notes.md
