@@ -1,6 +1,11 @@
 export default () => {
   return [
     {
+      name: 'app_quickCommands',
+      shortcut: 'ctrl+space',
+      shortcutMac: 'ctrl+space'
+    },
+    {
       name: 'app_closeCurrentTab',
       shortcut: 'alt+w',
       shortcutMac: 'alt+w'

@@ -12,6 +12,7 @@ import {
 import { refs, refsStatic } from '../common/ref'
 import keyControlPressed from '../../common/key-control-pressed'
 import keyPressed from '../../common/key-pressed'
+import QuickCommandPalette from '../quick-commands/quick-command-palette'
 
 function isInputActive () {
   const activeElement = document.activeElement
@@ -23,6 +24,21 @@ function isInputActive () {
 }
 
 class ShortcutControl extends React.PureComponent {
+  state = { quickCommandsOpen: false }
+
+  quickCommandsShortcut = (e) => {
+    if (!window.store.inActiveTerminal || window.store.onOperation) return
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.repeat) return false
+    this.setState({ quickCommandsOpen: true })
+    return false
+  }
+
+  handleCloseQuickCommands = () => {
+    this.setState({ quickCommandsOpen: false }, () => window.store.focus())
+  }
+
   componentDidMount () {
     const onEvent = this.handleKeyboardEvent.bind(this)
     document.addEventListener('keydown', this.onEvent, true)
@@ -250,7 +266,9 @@ class ShortcutControl extends React.PureComponent {
   }, 1000)
 
   render () {
-    return null
+    return this.state.quickCommandsOpen
+      ? <QuickCommandPalette store={window.store} onClose={this.handleCloseQuickCommands} />
+      : null
   }
 }
 

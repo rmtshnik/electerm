@@ -1,0 +1,69 @@
+name: Синхронизация с оригиналом
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'rmtshnik/electerm'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BASE_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Объединить изменения оригинала
+        id: merge
+        shell: bash
+        run: |
+          git remote add upstream https://github.com/electerm/electerm.git
+          git fetch upstream master --no-tags
+          if git merge-base --is-ancestor upstream/master HEAD; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c codex/sync-upstream
+          git merge --no-edit upstream/master
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+      - name: Установить зависимости
+        if: steps.merge.outputs.changed == 'true'
+        run: |
+          npm ci --legacy-peer-deps
+          npm install --no-save --package-lock=false --legacy-peer-deps @serialport/binding-mock
+      - name: Проверить код и модульные тесты
+        if: steps.merge.outputs.changed == 'true'
+        run: |
+          npm run lint
+          npm run test-unit-ci
+          npm run compile
+          test -s work/app/assets/js/electerm-$(node -p "require('./package.json').version").js
+      - name: Создать запрос на слияние
+        if: steps.merge.outputs.changed == 'true'
+        shell: bash
+        run: |
+          git push --force-with-lease origin HEAD:refs/heads/codex/sync-upstream
+          existing=$(gh pr list --base "$BASE_BRANCH" --head codex/sync-upstream --state open --json number --jq '.[0].number')
+          if [ -z "$existing" ]; then
+            gh pr create --base "$BASE_BRANCH" --head codex/sync-upstream \
+              --title "Обновление из electerm/electerm" \
+              --body "Объединены изменения upstream/master с основной веткой форка. Проверены стиль кода, модульные тесты и сборка. Перед принятием проверьте в приложении Ctrl+Space, поиск, стрелки, Enter, Esc и режим «только ввод». Автоматическое слияние отключено."
+          fi

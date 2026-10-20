@@ -12,6 +12,7 @@ on:
 
 jobs:
   upload-to-store:
+    if: ${{ github.repository == 'electerm/electerm' }}
     runs-on: windows-2022
     environment: build
 

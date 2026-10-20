@@ -2,9 +2,11 @@
  * Check if install source should skip upgrade check
  */
 
-import { srcsSkipUpgradeCheck } from './constants'
+import { packInfo, srcsSkipUpgradeCheck } from './constants'
 
 export const checkSkipSrc = (installSrc) => {
+  // Forks receive upstream changes through Git, never through upstream binaries.
+  if (packInfo.fork?.disableUpstreamUpdates) return true
   if (!installSrc) return false
   return srcsSkipUpgradeCheck.some(skipSrc => {
     if (skipSrc === 'skip-upgrade-check') {

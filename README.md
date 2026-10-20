@@ -1,283 +1,128 @@
-<h1 align="center" style="padding-top: 60px;padding-bottom: 40px;">
-    <a href="https://electerm.org">
-        <img src="https://github.com/electerm/electerm-resource/raw/master/static/images/electerm.png", alt="" />
-    </a>
-</h1>
+# electerm — форк с быстрым выбором команд
 
-[![GitHub version](https://badgers.space/github/release/electerm/electerm?corner_radius=m)](https://github.com/electerm/electerm/releases)
-[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/electerm/electerm/blob/master/LICENSE)
-[![GitHub Sponsors](https://img.shields.io/github/sponsors/electerm?label=Sponsors)](https://github.com/sponsors/electerm)
-[![star](https://atomgit.com/electerm/electerm/star/badge.svg)](https://atomgit.com/electerm/electerm)
+[![Лицензия MIT](https://img.shields.io/badge/лицензия-MIT-blue.svg)](LICENSE)
 
-[English](README.md) | [中文](src/docs/README_cn.md) | [日本語](src/docs/README_jp.md)
+Русскоязычный форк [electerm/electerm](https://github.com/electerm/electerm) с палитрой быстрых команд, управляемой с клавиатуры.
 
-Open-sourced terminal/ssh/sftp/telnet/serialport/RDP/VNC/Spice/ftp client(Linux, Mac, Windows, Android, HarmonyOS, iOS).
+**Репозиторий:** [rmtshnik/electerm](https://github.com/rmtshnik/electerm).
+**Основа после синхронизации 20 октября 2026 года:** electerm 5.6.10, коммит `6584b518`.
 
-Besides mainstream Windows/macOS/Linux/Android, electerm also supports HarmonyOS, iOS, and older systems — Ubuntu 18, Windows 7, macOS 10+, and special Chinese Linux distributions such as UOS, Kylin, and LoongArch (both old-world and new-world), as well as RISC-V (riscv64) and PowerPC 64-bit little-endian (ppc64le) Linux.
+## Возможности
 
-<p>
-  <a href="https://electerm.org">Homepage / Downloads</a> ·
-  <a href="https://theme.electerm.org">Theme</a> ·
-  <a href="https://github.com/electerm/electerm-web-docker">Docker</a> ·
-  <a href="https://demo.electerm.org">Online demo</a> ·
-  <a href="https://github.com/electerm/electerm-android">Android</a> ·
-  <a href="https://github.com/electerm/electerm-harmony">HarmonyOS</a> ·
-  <a href="https://apps.apple.com/cn/app/electerm/id6792971552">Apple App Store</a> ·
-  <a href="https://appgallery.huawei.com/app/detail?id=org.electerm.electerm">Huawei AppGallery</a> ·
-  <a href="https://www.microsoft.com/store/apps/9NCN7272GTFF">Microsoft Store</a> ·
-  <a href="https://snapcraft.io/electerm">Snap Store</a> ·
-  <a href="https://repos.electerm.org/deb">deb repo</a> ·
-  <a href="https://repos.electerm.org/rpm">rpm repo</a>
-</p>
+Сохранены возможности оригинала: локальный терминал, SSH, SFTP, FTP, Telnet, последовательный порт, RDP, VNC и Spice; закладки, туннели, темы, передача файлов, синхронизация настроек и помощник ИИ. Поддержка платформ зависит от используемой сборки и её зависимостей.
 
-<div>🌐 <strong><a href="https://cloud.electerm.org">electerm online</a></strong> — Public free online electerm app</div>
-<div>🤖 <strong><a href="https://ai.electerm.org">electerm AI</a></strong> — Free AI for electerm users</div>
-<div>💻 <strong><a href="https://github.com/electerm/electerm-web">electerm-web</a></strong> — Web app version running in browser (including mobile device)</div>
+Дополнение этого форка — быстрый поиск и запуск сохранённых команд без мыши:
 
-## Sponsors
+1. Создайте команду в настройках быстрых команд.
+2. Установите фокус в терминале и нажмите **Ctrl+Space**.
+3. Введите часть имени, команды или метки.
+4. Выберите команду стрелками **↑ / ↓** и нажмите **Enter**.
+5. **Esc** закрывает палитру и возвращает фокус в терминал.
 
-<div align="center">
-  <a href="https://www.atlascloud.ai/?ref=PCAEL2&utm_source=github&utm_medium=link&utm_campaign=electerm">
-    <img src="https://github.com/electerm/electerm-resource/blob/master/static/images/atlas-cloud.png?raw=true" alt="Atlas Cloud" width="260" />
-  </a>
-</div>
+Команды в режиме «только ввод» вставляются без автоматического выполнения. Сочетание клавиш можно изменить в настройках горячих клавиш. Палитра использует существующие команды electerm, поэтому повторно создавать их не нужно.
 
-[Atlas Cloud](https://www.atlascloud.ai/?ref=PCAEL2&utm_source=github&utm_medium=link&utm_campaign=electerm) provides OpenAI-compatible AI APIs and model access for AI-powered workflows in electerm.
+## Установка своей сборки
 
-----
+Тестовые сборки форка доступны в [разделе выпусков этого репозитория](https://github.com/rmtshnik/electerm/releases). После переноса процесса сборки в основную ветку новые выпуски публикуются автоматически при успешной сборке всех платформ. Для рабочих веток файлы сохраняются в артефактах Actions.
 
-<div align="center">
-  <a href="https://www.packyapi.ai/register?aff=DOZI">
-    <img src="https://github.com/electerm/electerm-resource/blob/master/static/images/packy-api.png?raw=true" alt="PackyCode" width="210" />
-  </a>
-</div>
+| Система | Файл | Установка |
+| --- | --- | --- |
+| Windows x64 | `windows-x64-setup.exe` | Запустите установщик |
+| Windows x64 | `win-x64.zip` | Распакуйте архив целиком и запустите `electerm.exe` |
+| macOS Intel | `mac-x64.dmg` | Откройте образ и перенесите приложение в «Программы» |
+| macOS Apple Silicon | `mac-arm64.dmg` | Откройте образ и перенесите приложение в «Программы» |
+| Linux x64, Ubuntu/Debian | `.deb` | `sudo apt install ./имя-файла.deb` |
+| Linux x64 | `.AppImage` | Разрешите выполнение через `chmod +x имя-файла.AppImage` и запустите файл |
+| Linux x64 | `.tar.gz` | Распакуйте архив и запустите `electerm` |
 
-[PackyCode](https://www.packyapi.ai/register?aff=DOZI) — Access leading AI models through PackyCode with one API endpoint and one API key. Enjoy fast, reliable access with automatic failover and dedicated high-speed routes for Codex and Claude Code. Get started with $1 in free credits, a discount on your first top-up, and savings of up to 80% on eligible routes. Pay in RMB with no currency conversion markups or extra top-up fees.
+В таблице указаны окончания имён; полные имена включают версию. Для macOS также доступны ZIP. Linux arm64 и другие архитектуры пока не включены в тестовую сборку.
 
-----
+Эти предварительные сборки не подписаны доверенным сертификатом издателя; macOS не нотарифицирована. Если macOS блокирует запуск, после попытки открытия разрешите его в «Системные настройки → Конфиденциальность и безопасность». Windows также может показать предупреждение об неизвестном издателе.
 
-<div align="center">
-  <a href="https://fluxionai.space/register?source=github&campaign=github-sidrune-electerm&promo=SDRELECTERM&aff=7H7DERHU3GFF">
-    <img src="https://github.com/electerm/electerm-resource/blob/master/static/images/sidrune.png?raw=true" alt="Sidrune" width="210" />
-  </a>
-</div>
+Перед тестированием сделайте резервную копию настроек: приложение может использовать данные ранее установленного electerm. Архив Windows из автоматической сборки не включает режим переносимых настроек по умолчанию; для него создайте папку `electerm` рядом с `electerm.exe` перед первым запуском.
 
-[Sidrune AI](https://fluxionai.space/register?source=github&campaign=github-sidrune-electerm&promo=SDRELECTERM&aff=7H7DERHU3GFF) — One gateway to the world's leading AI models, one unified API with multi-route delivery; transparent usage and pricing, Claude & OpenAI — 70% OFF [Register through the partner link
-Get $3 in API credit](https://fluxionai.space/register?source=github&campaign=github-sidrune-electerm&promo=SDRELECTERM&aff=7H7DERHU3GFF).
+[Подробная инструкция установки и проверки](docs/install-and-test.md). Инструкция по самостоятельной сборке для Windows: [сборка переносимой версии](docs/windows-portable-build.md).
 
-----
+Официальные установщики electerm, пакеты из магазинов, `winget install electerm.electerm` и `npm install -g electerm` устанавливают оригинальный проект. Дополнение с палитрой команд в них не включено.
 
-<div align="center">
-  <br />
-  <br />
-  <a href="https://go.apimart.ai/gh-electerm">
-    <img src="https://github.com/electerm/electerm-resource/blob/master/static/images/apimart.jpg?raw=true" alt="ApiMart" width="200" />
-  </a>
-  <br />
-  <br />
-</div>
+## Обновления с сохранением дополнений
 
-Thanks to APIMart for sponsoring electerm! APIMart is a low-cost API platform for AI image & video generation — GPT-Image-2 from $0.006/image, 160+ images per dollar. One async API covers both image and video: submit a task, get an ID, fetch results via polling or callback. Batch tens of thousands of images without timeouts, switch models without changing code. Pay-as-you-go with no monthly fee — [sign up here to get started](https://go.apimart.ai/gh-electerm).
+Исходный проект подключён как `upstream`, этот форк — как `origin`. Обновления объединяются через `git merge`: история оригинала и собственные коммиты сохраняются.
 
-----
+В форке отключено встроенное получение обновлений из официальных бинарных сборок: они могут заменить приложение версией без палитры. Для обновления приложения нужно объединить изменения исходников и собрать новую версию форка.
 
-<div align="center">
-  <a href="https://www.apismart.ai">
-    <img src="https://github.com/electerm/electerm-resource/blob/master/static/images/apismart400x400.png?raw=true" alt="ApiSmart" width="200" />
-  </a>
-</div>
+### Автоматическая проверка
 
-[ApiSmart](https://www.apismart.ai) provides unified access to leading AI models through a single API. Use one API key to connect with LLM, image, and video models through an OpenAI-compatible interface, without managing multiple providers separately. Switch models easily, simplify billing, and improve reliability with intelligent routing and automatic failover. Build and scale AI applications faster with one streamlined API platform.
+Файл [синхронизации](.github/workflows/sync-upstream.yml) ежедневно проверяет ветку `master` оригинала. Если есть изменения, он пробует объединить их с основной веткой форка, выполняет проверки и создаёт запрос на слияние. Автоматического принятия запроса нет. При конфликте проверка завершается с ошибкой; конфликт нужно разрешить вручную.
 
-----
+Для включения:
 
-<div align="center">
+1. Объедините ветку с этими изменениями, включая палитру команд, с основной веткой `master` вашего репозитория.
+2. В разделе **Actions** разрешите выполнение процессов в форке.
+3. В **Settings → Actions → General → Workflow permissions** разрешите GitHub Actions создавать запросы на слияние.
+4. При необходимости запустите «Синхронизация с оригиналом» вручную.
 
-<a href="https://www.digitalocean.com/?refcode=c10bcb28b846&utm_campaign=Referral_Invite&utm_medium=Referral_Program&utm_source=badge"><img align="middle" src="https://web-platforms.sfo2.cdn.digitaloceanspaces.com/WWW/Badge%202.svg" alt="DigitalOcean Referral Badge" /></a>&nbsp;&nbsp;&nbsp;<a href="https://oss-directory.vercel.app"><img align="middle" src="https://github.com/electerm/electerm-resource/blob/master/static/images/vercel-oss-2005.png?raw=true" alt="Vercel OSS Program" /></a>
+После успешных проверок просмотрите запрос, проверьте палитру в приложении и объедините изменения. Затем соберите новую версию. Даже отсутствие конфликтов Git не гарантирует совместимость функций.
 
-</div>
+Служебные процессы оригинала (Gitee, AtomGit, R2, сайт и публикации в магазины/npm) предназначены только для `electerm/electerm` и не запускаются в этом форке. Сообщение об ошибке старого процесса «Sync Master to Gitee» относится к зеркалу оригинала, а не к установщикам форка. Старые неудачные запуски остаются в истории Actions.
 
-<div align="center">
-    <img src="https://github.com/electerm/electerm-resource/raw/master/static/images/electerm-banner-1.jpg", alt="" />
-</div>
+### Ручное обновление
 
-## Features
-
-- Works as a terminal/file manager, ssh/sftp/ftp/telnet/serialport/RDP/VNC/Spice client
-- Support Window 7+(X64/ARM64), HarmonyOS，Android, iOS, Mac OS 10.15+(x64/arm64), Linux(x64/arm64/riscv64/ppc64le/Loong64 new world & old world), even old Linux with glibc 2.17+ like UOS/Kylin/Ubuntu 18.04 etc
-- Global hotkey to toggle window visibility (similar to guake, default is `ctrl + 2`)
-- 🇺🇸 🇨🇳 🇧🇷 🇷🇺 🇪🇸 🇫🇷 🇹🇷 🇭🇰 🇯🇵 🇸🇦 🇩🇪 🇰🇷 🇮🇩 🇵🇱 Multi-language support([electerm-locales](https://github.com/electerm/electerm-locales), contributions/fixes welcome)
-- Double click to directly edit (small) remote files.
-- All kind of auth methods: publicKey, password, ssh agent, certificates, otp, netbird etc.
-- Support Zmodem(rz, sz), and [Trzsz](https://github.com/trzsz/trzsz)(trz/tsz).
-- Support ssh related features: tunnel, connection hopping.
-- Customizable UI: themes, background image, transparent window(Mac, win).
-- Global/session proxy.
-- Quick commands/triggers to do predefined tasks and automattic operations
-- Sync data including bookmarks to github/gitee secret gist/webdav/custom server/electerm cloud
-- Quick input/mirror input to one or all terminals.
-- AI assistant integration (supporting multiple LLM API formats — OpenAI Chat Completions, OpenAI Responses, and Anthropic Messages) to help with command suggestions, script writing, and explaining selected terminal content, create bookmarks/themes, and agent mode to directly do terminal operations
-- MCP (Model Context Protocol) widget for AI assistants and external tools integration - see [MCP Widget Usage Guide](https://github.com/electerm/electerm/wiki/MCP-Widget-Usage-Guide)
-- Deep link support: Open connections with URLs like `telnet://192.168.2.31:34554` or `ssh://user@host:22` - see [Deep link support wiki](https://github.com/electerm/electerm/wiki/Deep-link-support)
-- Command line usage: check [wiki](https://github.com/electerm/electerm/wiki/Command-line-usage)
-
-## Install
-
-- For Mac user: `brew install --cask electerm`
-- With snap: `sudo snap install electerm --classic`
-- For some Linux distribution, you can find it from OS default App store(Ubuntu, Deepin, Mint...).
-- For some linux OS, the `rpm`, `deb`, or `snap` release may not work, you can try the `tar.gz` or `.appImage` release.
-- For Windows users, you can install it from [windows store](https://www.microsoft.com/store/apps/9NCN7272GTFF), command-line installer [winget](https://github.com/microsoft/winget-cli) and [scoop](https://github.com/lukesampson/scoop) is also recommended:
+Выполняйте в своей рабочей ветке при сохранённых локальных изменениях:
 
 ```powershell
-# winget https://github.com/microsoft/winget-cli
-winget install electerm.electerm
-
-# scoop https://github.com/lukesampson/scoop
-scoop bucket add dorado https://github.com/chawyehsu/dorado
-scoop install dorado/electerm
-```
-
-- Install from Debian repository (for Debian/Ubuntu-based systems) with `apt` command
-
-Check [https://repos.electerm.org/deb](https://repos.electerm.org/deb)
-
-- Install from npm
-
-```bash
-npm i -g electerm
-
-```
-
-## Upgrade
-
-- Auto upgrade: When a new version is released, you will get an upgrade notification after you start electerm again. You can then click the upgrade button to upgrade.
-- Download: Just download the latest edition, reinstall.
-- Npm: If you install from npm, just run `npm i -g electerm` again.
-- If use Snap or some other distribution system, these systems may provide upgrades.
-
-## Known issues
-
-[https://github.com/electerm/electerm/wiki/Know-issues](https://github.com/electerm/electerm/wiki/Know-issues)
-
-## Troubleshoot
-
-[https://github.com/electerm/electerm/wiki/Troubleshoot](https://github.com/electerm/electerm/wiki/Troubleshoot)
-
-## Discussion
-
-[![Discord](https://img.shields.io/badge/Discord-Join-blue?logo=discord)](https://discord.gg/855W7g8EVd)
-
-[Discussion board](https://github.com/electerm/electerm/discussions)
-
-![electerm-wechat-group-qr.jpg](https://electerm.org/electerm-wechat-group-qr.jpg)
-
-## Support
-
-Would love to hear from you, please tell me what you think, [submit an issue](https://github.com/electerm/electerm/issues), [Start a new discussion](https://github.com/electerm/electerm/discussions/new), [create/fix language files](https://github.com/electerm/electerm-locales) or create pull requests, all welcome.
-
-## Sponsor this project
-
-github sponsor
-
-[https://github.com/sponsors/electerm](https://github.com/sponsors/electerm)
-
-kofi
-
-[https://ko-fi.com/zhaoxudong](https://ko-fi.com/zhaoxudong)
-
-wechat donate
-
-[![wechat donate](https://electerm.org/electerm-wechat-donate.png)](https://github.com/electerm)
-
-TRON TRN20
-
-[![TRN20 donate](https://github.com/electerm/electerm-resource/blob/master/static/images/trn20.png?raw=true)]
-
-Address: TXk3pQNmQu1vihH76RaEFnK9wg13x4LLCZ
-
-## Dev
-
-```bash
-# May only works in Linux
-# needs nodejs/npm, suggest using nvm to install nodejs/npm
-# with nodejs 24.x
-
-git clone git@github.com:electerm/electerm.git
-cd electerm
-npm config set legacy-peer-deps true
-npm i
-
-# start vite dev server, requires port 5570
-npm start
-
-# in a separate terminal session run app
-npm run app
-
-# code format check
+git remote -v
+# Выполните следующую команду, только если upstream ещё не добавлен:
+git remote add upstream https://github.com/electerm/electerm.git
+git fetch upstream
+git log --oneline HEAD..upstream/master
+git diff --stat HEAD...upstream/master
+git merge upstream/master
+npm ci
 npm run lint
-
-# code format fix
-npm run fix
+npm run test-unit-ci
+npm run compile
 ```
 
-## Test
+При конфликтах отредактируйте файлы, сохраните свои дополнения и завершите слияние через `git add` и `git merge --continue`. Проверьте Ctrl+Space, поиск, стрелки, Enter, Esc и режим «только ввод» перед сборкой.
 
-```bash
-npm run b
-npm run prepare-test
-cp ./src/build/.sample.env ./.env
+[Сравнение с оригиналом и результаты первого обновления](docs/upstream-comparison.md).
 
-# edit .env, fill your test host/username/password, may only works in mac OS
-npm run test
+## Разработка
+
+Требуются Git, Node.js 24 и npm. Для зависимостей с нативным кодом могут понадобиться средства сборки вашей ОС.
+
+```powershell
+git clone https://github.com/rmtshnik/electerm.git
+cd electerm
+npm ci
+npm start
 ```
 
-## Test build
+Во втором терминале:
 
-```bash
-# May only works in Linux
-# Install yarn first(to do yarn autoclean)
-# See https://yarnpkg.com/en/docs/install
-
-# Build linux only with -l
-npm i
-npm run b
-npm run pb
-./node_modules/.bin/electron-builder --linux tar.gz
-# or replace tar.gz to rpm/deb/AppImage
-# check dist/ folder
-
-# build for linux arm/
-./node_modules/.bin/electron-builder --linux --arm64
+```powershell
+npm run app
 ```
 
-## Video guide
+Сервер разработки использует порт 5570.
 
-- [https://electerm.org/videos](https://electerm.org/videos)
+## Проверки
 
-## Change log
+```powershell
+npm run lint
+npm run test-unit-ci
+npm run compile
+```
 
-Visit [Releases](https://github.com/electerm/electerm/releases).
+Проверка палитры с запуском Electron находится в `src/test/e2e/009.2.quick-command.spec.js`. Она требует подготовленного приложения, Playwright и графической среды; модульные тесты её не заменяют. Для подготовки окружения смотрите процессы тестирования в `.github/workflows/mac-test-*.yml`.
 
-## Contact author
+## Обратная связь
 
-[zxdong@gmail.com](mailto:zxdong@gmail.com)
+Ошибки палитры команд и особенности этой сборки сообщайте в [задачах форка](https://github.com/rmtshnik/electerm/issues).
 
+Документация основных функций: [вики оригинального проекта](https://github.com/electerm/electerm/wiki). История официальных изменений: [выпуски оригинала](https://github.com/electerm/electerm/releases).
 
-## License
+## Авторство и лицензия
 
-MIT
-
-## Star History
-
-<p>
- <a href="https://www.star-history.com/electerm/electerm"><img src="https://api.star-history.com/badge?repo=electerm/electerm" alt="Star History Rank" /></a>
-</p>
-
-<a href="https://www.star-history.com/?repos=electerm%2Felecterm&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=electerm/electerm&type=date&legend=top-left&sealed_token=DvPlttPaLtq6RPIWRANYX08-8ZJyrJalhombrkDcg1IwWOMPMIplgi85q0FiwrbhE3lRIi_yxvOWdell731CGQvzlfJMt2Sa6VfCvQ80BwEtQ6RpPchEiw" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=electerm/electerm&type=date&legend=top-left&sealed_token=DvPlttPaLtq6RPIWRANYX08-8ZJyrJalhombrkDcg1IwWOMPMIplgi85q0FiwrbhE3lRIi_yxvOWdell731CGQvzlfJMt2Sa6VfCvQ80BwEtQ6RpPchEiw" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=electerm/electerm&type=date&legend=top-left&sealed_token=DvPlttPaLtq6RPIWRANYX08-8ZJyrJalhombrkDcg1IwWOMPMIplgi85q0FiwrbhE3lRIi_yxvOWdell731CGQvzlfJMt2Sa6VfCvQ80BwEtQ6RpPchEiw" />
- </picture>
-</a>
+Оригинальный electerm разработан ZHAO Xudong и участниками проекта. Этот репозиторий содержит собственные дополнения к нему. Лицензия — [MIT](LICENSE); исходные уведомления об авторских правах сохранены.

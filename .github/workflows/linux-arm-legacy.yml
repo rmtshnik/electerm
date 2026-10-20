@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-24.04-arm
     container: zxdong262/electerm-builder-legacy:latest  # This will be our custom image
     environment: build
-    if: ${{ !contains(github.event.head_commit.message, '[skip build]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip legacy]') && !contains(github.event.head_commit.message, '[skip linux-arm-legacy]') }}
+    if: ${{ github.repository == 'electerm/electerm' && (!contains(github.event.head_commit.message, '[skip build]') && !contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[skip legacy]') && !contains(github.event.head_commit.message, '[skip linux-arm-legacy]')) }}
 
     steps:
     - name: Clone repository to /tmp and setup
