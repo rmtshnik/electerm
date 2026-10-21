@@ -63,9 +63,9 @@ jobs:
           # Lint, tests and compilation already passed in the previous step.
           # npm postinstall may install a local pre-push hook; do not run it in CI.
           git -c core.hooksPath=/dev/null push --force-with-lease origin HEAD:refs/heads/codex/sync-upstream
-          existing=$(gh pr list --base "$BASE_BRANCH" --head codex/sync-upstream --state open --json number --jq '.[0].number')
+          existing=$(gh pr list --repo "$GITHUB_REPOSITORY" --base "$BASE_BRANCH" --head codex/sync-upstream --state open --json number --jq '.[0].number')
           if [ -z "$existing" ]; then
-            gh pr create --base "$BASE_BRANCH" --head codex/sync-upstream \
+            gh pr create --repo "$GITHUB_REPOSITORY" --base "$BASE_BRANCH" --head codex/sync-upstream \
               --title "Обновление из electerm/electerm" \
               --body "Объединены изменения upstream/master с основной веткой форка. Проверены стиль кода, модульные тесты и сборка. Перед принятием проверьте в приложении Ctrl+Space, поиск, стрелки, Enter, Esc и режим «только ввод». Автоматическое слияние отключено."
           fi
