@@ -173,6 +173,11 @@ class ShortcutControl extends React.PureComponent {
     }
   }, 500)
 
+  stopQuickCommandShortcut = throttle((e) => {
+    e.stopPropagation()
+    window.store.stopQuickCommand()
+  }, 500)
+
   prevTabShortcut = throttle((e) => {
     e.stopPropagation()
     window.store.clickPrevTab()

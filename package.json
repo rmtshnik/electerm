@@ -1,6 +1,6 @@
 {
   "name": "electerm",
-  "version": "5.6.10",
+  "version": "5.7.0",
   "description": "Open-sourced terminal/ssh/sftp/telnet/serialport/RDP/VNC/Spice/ftp client(Linux, Mac, Windows, Android, HarmonyOS, iOS).",
   "main": "app.js",
   "scripts": {
@@ -83,7 +83,7 @@
     "filesize": "10.1.6",
     "filesize-parser": "1.5.1",
     "glob": "^13.0.6",
-    "ironrdp-wasm": "1.1.0",
+    "ironrdp-wasm": "1.2.0",
     "lodash-es": "^4.17.21",
     "manate": "2.0.3",
     "morgan": "^1.12.0",
@@ -103,7 +103,7 @@
   },
   "dependencies": {
     "@electerm/electerm-themes": "1.0.2",
-    "@electerm/electerm-locales": "2.3.33",
+    "@electerm/electerm-locales": "2.3.34",
     "@electerm/ftp-srv": "^1.0.6",
     "@electerm/nedb": "2.0.0",
     "@electerm/ssh2": "1.22.1",
