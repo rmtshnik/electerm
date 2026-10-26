@@ -50,7 +50,17 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git switch -c codex/sync-upstream
-          git merge --no-edit upstream/master
+          if ! git merge --no-edit upstream/master; then
+            conflicts=$(git diff --name-only --diff-filter=U)
+            if [ "$conflicts" != "README.md" ]; then
+              echo "::error::Слияние требует ручной проверки. Конфликты: $conflicts"
+              exit 1
+            fi
+            # This fork maintains its own Russian README.
+            git checkout --ours -- README.md
+            git add README.md
+            git commit --no-edit
+          fi
           echo "changed=true" >> "$GITHUB_OUTPUT"
       - name: Установить зависимости
         if: steps.merge.outputs.changed == 'true'
