@@ -32,6 +32,7 @@ import { resizeMixin } from './mixins/term-resize.js'
 import { themeMixin } from './mixins/term-theme.js'
 import { attachMixin } from './mixins/term-attach.js'
 import { socketMixin } from './mixins/term-socket.js'
+import { clearNeedsInteractiveInput } from './interactive-prompt-state.js'
 import { configMixin } from './mixins/term-config.jsx'
 import { contextMenuMixin } from './mixins/term-context-menu.jsx'
 import { contentMixin } from './mixins/term-content.js'
@@ -39,6 +40,7 @@ import { logMixin } from './mixins/term-log.jsx'
 import { touchMixin } from './mixins/term-touch.js'
 import { fileDropMixin } from './mixins/term-file-drop.js'
 import { suggestionsMixin } from './mixins/term-suggestions.js'
+import { shouldOpenContextMenu } from '../../common/right-click-behavior.js'
 
 const e = window.translate
 
@@ -223,6 +225,8 @@ class Term extends Component {
 
   componentWillUnmount () {
     refs.remove(this.id)
+    // this tab id will never be connected again (reload mints a new one)
+    clearNeedsInteractiveInput(this.props.tab.id)
     clearTimeout(this.longPressTimer)
     this.longPressTimer = null
     this.touchStartPos = null
@@ -405,7 +409,9 @@ class Term extends Component {
         items: this.renderContextMenu(),
         onClick: this.onContextMenu
       },
-      trigger: this.props.config.pasteWhenContextMenu ? [] : ['contextMenu']
+      // only 'context' opens the menu; 'paste' and 'passthrough' are handled
+      // by onContextMenuInner (see term-context-menu.jsx)
+      trigger: shouldOpenContextMenu(this.props.config) ? ['contextMenu'] : []
     }
     const barProps = {
       matchIndex: this.state.matchIndex,

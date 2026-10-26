@@ -278,6 +278,15 @@ export default Store => {
 
     if (removedIds.length) {
       window.store.fixCurrentTabIds(tabs, removedIds)
+      // a quick command waiting on a delay would otherwise linger until
+      // the delay ends
+      for (const id of removedIds) {
+        window.store.stopQuickCommand(id)
+      }
+      // keep what was recorded in a closed tab, the user can still save it
+      if (removedIds.includes(window.store.qmRecording?.tabId)) {
+        window.store.stopQuickCommandRecording()
+      }
     }
   }
 
@@ -611,6 +620,12 @@ export default Store => {
       !tab.type &&
       !tab.host
     ) {
+      return
+    }
+    // a tab opened by a custom widget carries credentials that widget produced
+    // (a password manager, for instance); they must not be copied into the
+    // connection history, which is synced
+    if (typeof tab.from === 'string' && tab.from.startsWith('widget:')) {
       return
     }
     const { store } = window
