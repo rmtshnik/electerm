@@ -142,13 +142,20 @@ async function startServer (authHandler) {
 function createPromptWs (promptResponder, options = {}) {
   const {
     includeConfirmPrompts = false,
-    defaultConfirmResponse = ['trust']
+    defaultConfirmResponse = ['trust'],
+    // a human needs a moment to type. Answering in a microtask hides the fact
+    // that the socket of the failed attempt closes *after* the prompt went up.
+    answerDelay = 0
   } = options
   const prompts = []
   let pendingOptions
   return {
     prompts,
+    sent: [],
     s (payload) {
+      if (payload && payload.action) {
+        this.sent.push(payload)
+      }
       if (payload && payload.action === 'session-interactive') {
         pendingOptions = payload.options
         if (includeConfirmPrompts || payload.options?.mode !== 'confirm') {
@@ -158,16 +165,40 @@ function createPromptWs (promptResponder, options = {}) {
     },
     once (handler) {
       const currentOptions = pendingOptions
-      queueMicrotask(() => {
-        handler({
-          results: currentOptions?.mode === 'confirm' && !includeConfirmPrompts
-            ? defaultConfirmResponse
-            : promptResponder(currentOptions, prompts)
-        })
-      })
+      const isConfirm = currentOptions?.mode === 'confirm' && !includeConfirmPrompts
+      const results = isConfirm
+        ? defaultConfirmResponse
+        : promptResponder(currentOptions, prompts)
+      if (answerDelay && !isConfirm) {
+        setTimeout(() => handler({ results }), answerDelay)
+      } else {
+        queueMicrotask(() => handler({ results }))
+      }
+      return () => {}
     },
     close () {}
   }
+}
+
+/**
+ * Records every message and never answers a prompt - the user walked away from
+ * the dialog. `session-interactive-close` is how the session takes that dialog
+ * down again once the attempt it belongs to is over (#4634).
+ */
+function createUnansweredPromptWs () {
+  const sent = []
+  return {
+    sent,
+    s (payload) {
+      sent.push(payload)
+    },
+    once () {},
+    close () {}
+  }
+}
+
+function sentOf (ws, action) {
+  return ws.sent.filter(d => d && d.action === action)
 }
 
 function publicKeyOnlyAuth (publicKey) {
@@ -292,6 +323,23 @@ function emptyLabelPasswordAuth () {
       )
     }
     return ctx.reject(['keyboard-interactive'])
+  }
+}
+
+/**
+ * Password auth only, no keyboard-interactive: a bookmark with no saved
+ * password gets its prompt from the retry chain (after the first attempt was
+ * rejected for having no password at all), not from a live connection (#4646).
+ */
+function passwordOnlyAuth () {
+  return (ctx) => {
+    if (ctx.method === 'none') {
+      return ctx.reject(['password'])
+    }
+    if (ctx.method === 'password' && ctx.username === USERNAME && ctx.password === PASSWORD) {
+      return ctx.accept()
+    }
+    return ctx.reject(['password'])
   }
 }
 
@@ -644,6 +692,95 @@ describe('session-ssh auth flows', () => {
       term && term.kill()
       await server.close()
     }
+  })
+
+  test('takes back an MFA prompt when the connection dies under it', async () => {
+    const server = await startServer(emptyLabelOtpAuth())
+    // the dialog stays up and the user walks away: nothing ever answers it
+    const ws = createUnansweredPromptWs()
+
+    const attempt = session({
+      host: '127.0.0.1',
+      port: server.port,
+      username: USERNAME,
+      password: PASSWORD,
+      useSshAgent: false,
+      enableSsh: false,
+      tabId: 'tab-mfa',
+      readyTimeout: 5000
+    }, ws).catch(e => e)
+
+    // wait until the prompt is on screen, then drop the connection the way a
+    // network loss during a 2FA login does
+    for (let i = 0; i < 200 && !sentOf(ws, 'session-interactive').length; i++) {
+      await delay(10)
+    }
+    await server.close()
+    const err = await attempt
+
+    assert.ok(err instanceof Error, 'an unanswered prompt must end the attempt')
+    const prompts = sentOf(ws, 'session-interactive')
+    const closes = sentOf(ws, 'session-interactive-close')
+    assert.equal(prompts.length, 1, 'one attempt, one prompt - no retry loop')
+    assert.equal(closes.length, 1, 'the dead prompt is taken back')
+    assert.equal(closes[0].id, prompts[0].id, 'the close names the prompt it ends')
+    assert.equal(closes[0].tabId, 'tab-mfa',
+      'the close names the tab, so the renderer can stop reconnecting it')
+  })
+
+  test('a cancelled MFA prompt ends the attempt instead of asking again', async () => {
+    const server = await startServer(emptyLabelOtpAuth())
+    const ws = createPromptWs(() => [])
+
+    let err
+    try {
+      await session({
+        host: '127.0.0.1',
+        port: server.port,
+        username: USERNAME,
+        password: PASSWORD,
+        useSshAgent: false,
+        enableSsh: false,
+        readyTimeout: 5000
+      }, ws)
+    } catch (e) {
+      err = e
+    } finally {
+      await server.close()
+    }
+
+    assert.ok(err, 'cancelling the prompt must fail the connection')
+    assert.match(err.message, /User cancel/)
+    assert.equal(ws.prompts.length, 1,
+      'a cancelled prompt must not be asked a second time')
+  })
+
+  test('a password prompt survives the close of the attempt that asked for it', async () => {
+    // #4646: the first attempt has no password and is rejected, which puts the
+    // password prompt up; the socket of that rejected attempt then closes, and
+    // taking the prompt back with it killed every login with "User cancel".
+    const server = await startServer(passwordOnlyAuth())
+    const ws = createPromptWs(() => [PASSWORD], { answerDelay: 150 })
+
+    let term
+    try {
+      term = await session({
+        host: '127.0.0.1',
+        port: server.port,
+        username: USERNAME,
+        useSshAgent: false,
+        enableSsh: false,
+        tabId: 'tab-password',
+        readyTimeout: 5000
+      }, ws)
+    } finally {
+      term && term.kill()
+      await server.close()
+    }
+
+    assert.equal(ws.prompts.length, 1, 'asked once, answered once')
+    assert.equal(sentOf(ws, 'session-interactive-close').length, 0,
+      'the prompt must not be taken back while the user is typing')
   })
 
   test('a label-less password prompt is still answered with the saved password', async () => {

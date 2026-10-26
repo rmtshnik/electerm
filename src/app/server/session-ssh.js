@@ -46,6 +46,14 @@ const algFailMsgs = [
   'no matching host key format'
 ]
 
+// Tells the renderer that an interactive prompt (MFA code, password, host key
+// trust) is no longer answerable, so it can take its dialog down. A prompt can
+// only be answered while the connection that asked for it is alive, and the
+// dialog is a modal with a mask: one left behind by a dead attempt blocks the
+// whole window, tab switching included, and cancelling it only revealed the
+// next stale prompt in the queue (#4634).
+const interactiveCloseAction = 'session-interactive-close'
+
 // A key/certificate can be stored two ways: as content (pasted, or imported
 // from a file by the bookmark form), or as the path of the file to read it
 // from ("select file path" in the bookmark form, `-i/--private-key-path` on
@@ -89,6 +97,17 @@ function resolveKeyFiles (options) {
 }
 
 class TerminalSshBase extends TerminalBase {
+  constructor (...args) {
+    super(...args)
+    // Prompts still waiting for an answer, keyed by the id the renderer replies
+    // with. Each value takes its prompt back (closes the dialog, settles the
+    // promise) - see abortPendingPrompts.
+    this.pendingPrompts = new Map()
+    // Set once a prompt was cancelled or taken back. Retrying from here would
+    // ask the very same question, and no retry can answer it on its own.
+    this.interactiveAborted = false
+  }
+
   async remoteInitProcess () {
     this.adjustConnectionOrder()
     const {
@@ -344,7 +363,14 @@ class TerminalSshBase extends TerminalBase {
     }
   }
 
-  onKeyboardEvent (options, passwordOverride) {
+  /**
+   * `ownerConn` is the connection whose callbacks asked this question (host key
+   * trust, keyboard-interactive). Only such a prompt dies with its connection.
+   * A prompt from the retry chain (username / password / passphrase) is created
+   * *after* the attempt that failed, for the attempt that has not started yet,
+   * so no connection owns it - see abortPendingPrompts.
+   */
+  onKeyboardEvent (options, passwordOverride, ownerConn) {
     if (options?.mode !== 'confirm' && this.initOptions?.interactiveValues) {
       return Promise.resolve(this.initOptions.interactiveValues.split('\n'))
     }
@@ -374,6 +400,7 @@ class TerminalSshBase extends TerminalBase {
     }
 
     const id = generate()
+    const tabId = this.initOptions?.tabId
     this.ws?.s({
       id,
       action: 'session-interactive',
@@ -384,14 +411,57 @@ class TerminalSshBase extends TerminalBase {
       options: this.labelBarePrompts(options)
     })
     return new Promise((resolve, reject) => {
-      this.ws?.once((arg) => {
+      const dispose = this.ws?.once((arg) => {
+        this.pendingPrompts.delete(id)
         const { results } = arg
         if (_.isEmpty(results)) {
+          // the user said no; nothing may retry this on their behalf
+          this.interactiveAborted = true
           return reject(new Error('User cancel'))
         }
         resolve(results)
       }, id)
+      this.pendingPrompts.set(id, {
+        owner: ownerConn || null,
+        abort: () => {
+          this.pendingPrompts.delete(id)
+          dispose?.()
+          this.ws?.s({
+            action: interactiveCloseAction,
+            id,
+            tabId
+          })
+          reject(new Error('User cancel'))
+        }
+      })
     })
+  }
+
+  /**
+   * Take back every prompt still waiting for an answer that `ownerConn` asked
+   * for (all of them when called without a connection, e.g. on kill). The
+   * renderer shows the prompt as a plain modal with no session to observe, so
+   * it can not notice on its own that the attempt which asked the question is
+   * gone: without this the dialog stays up (and blocks the window) after the
+   * handshake has already timed out underneath it.
+   *
+   * Ownership matters: an auth failure ends with the socket closing, but by
+   * then the failure itself has asked the user for the next credential. That
+   * prompt belongs to the next attempt, and aborting it here made every
+   * password / OTP login die with "User cancel" a millisecond after the dialog
+   * appeared (#4646).
+   */
+  abortPendingPrompts (ownerConn) {
+    const targets = [...this.pendingPrompts.values()]
+      .filter(prompt => !ownerConn || prompt.owner === ownerConn)
+    if (!targets.length) {
+      return
+    }
+    for (const prompt of targets) {
+      // removes itself from pendingPrompts, disposes its ws listener, rejects
+      prompt.abort()
+    }
+    this.interactiveAborted = true
   }
 
   async getPrivateKeysInJumpServer (conn) {
@@ -781,7 +851,7 @@ class TerminalSshBase extends TerminalBase {
       connectOptions.hostVerifier = createHostVerifier({
         ...verifyTarget,
         confirm: async (options) => {
-          const results = await this.onKeyboardEvent(options)
+          const results = await this.onKeyboardEvent(options, undefined, conn)
           return results && results[0] === (options.confirmResult || 'trust')
         },
         onError: (err) => {
@@ -829,7 +899,7 @@ class TerminalSshBase extends TerminalBase {
           instructionsLang,
           prompts
         }
-        this.onKeyboardEvent(options, connectOptions.password ?? this.initOptions?.password ?? null)
+        this.onKeyboardEvent(options, connectOptions.password ?? this.initOptions?.password ?? null, conn)
           .then(finish)
           .catch(reject)
       })
@@ -877,8 +947,14 @@ class TerminalSshBase extends TerminalBase {
       conn
         .on('ready', () => resolve(true))
         .on('error', err => {
+          // Whatever prompt asked for input on this connection can not be
+          // answered any more. Take it back before the renderer hears that the
+          // attempt failed, so the dialog is already gone when the error shows.
+          this.abortPendingPrompts(conn)
           reject(this.hostVerificationError || err)
         })
+        // a dropped connection does not always surface as an 'error'
+        .on('close', () => this.abortPendingPrompts(conn))
         .connect(connectOptions)
     })
   }
@@ -1081,6 +1157,13 @@ class TerminalSshBase extends TerminalBase {
     }
     const err = result
     log.error('error when do sshConnect', err, this.privateKeyPath)
+    if (this.interactiveAborted) {
+      // The user cancelled the prompt, or it sat unanswered until the handshake
+      // timed out. Every retry below (next key, password, alt algorithms) would
+      // ask the exact same question again - that loop is what turned one stale
+      // MFA dialog into an endless reconnect with the dialog stuck on top.
+      throw err
+    }
     if (
       algFailMsgs.some(msg => err.message.includes(msg)) &&
       !this.altAlg
@@ -1210,6 +1293,9 @@ class TerminalSshBase extends TerminalBase {
   }
 
   kill () {
+    // a dialog still up belongs to this session; take it down with the session
+    // (and release the reply listener it holds on the ws)
+    this.abortPendingPrompts()
     // close the transports first, then drop the references: doKill() can only
     // close what it can still see, and this used to null conn/conns before
     // calling it, so the ssh connection (plus jump-host hops, and any ssh

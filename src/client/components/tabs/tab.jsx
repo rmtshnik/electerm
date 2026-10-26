@@ -10,7 +10,9 @@ import {
   Loading3QuartersOutlined,
   BorderlessTableOutlined,
   LockOutlined,
-  PushpinFilled
+  PushpinFilled,
+  LoadingOutlined,
+  BorderOutlined
 } from '@ant-design/icons'
 import {
   Tooltip,
@@ -317,6 +319,10 @@ class Tab extends Component {
     window.store.closeTabsRight(this.props.tab.id)
   }
 
+  stopQuickCommand = () => {
+    window.store.stopQuickCommand(this.props.tab.id)
+  }
+
   togglePin = () => {
     const { tab } = this.props
     window.store.pinTab(tab.id, !tab.isPinned)
@@ -332,8 +338,16 @@ class Tab extends Component {
     const cloneToNextShortcut = this.getShortcut('app_cloneToNextLayout')
     const duplicateShortcut = this.getShortcut('app_duplicateTab')
     const reloadAllShortcut = this.getShortcut('app_reloadAll')
+    const qmRunning = !!window.store.runningQuickCommands[tab.id]
 
     const x = [
+      qmRunning && {
+        key: 'stopQuickCommand',
+        icon: <BorderOutlined />,
+        label: e('stopQuickCommand'),
+        extra: this.getShortcut('app_stopQuickCommand'),
+        danger: true
+      },
       {
         key: 'handleClose',
         icon: <iconsMap.CloseCircleOutlined />,
@@ -517,6 +531,7 @@ class Tab extends Component {
       trigger: ['contextMenu']
     }
     const { tabCount, color = '#0088cc' } = tab
+    const runningQm = window.store.runningQuickCommands[id]
     const styleTag = color
       ? {
           background: color,
@@ -567,6 +582,14 @@ class Tab extends Component {
                     )
                   : null}
                 {tab.isPinned && <PushpinFilled className='tab-pin' />}
+                {
+                  runningQm && (
+                    <LoadingOutlined
+                      className='tab-qm-running mg1r'
+                      title={runningQm.name}
+                    />
+                  )
+                }
                 <span className='mg1r tab-title-text'>{title}</span>
               </span>
             </div>
