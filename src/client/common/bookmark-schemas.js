@@ -15,7 +15,7 @@ const quickCommandSchema = z.object({
 })
 
 const sshTunnelSchema = z.object({
-  sshTunnel: z.enum(['forwardRemoteToLocal', 'forwardLocalToRemote', 'dynamicForward']).describe('Tunnel type'),
+  sshTunnel: z.enum(['forwardRemoteToLocal', 'forwardLocalToRemote', 'dynamicForward', 'remoteDynamicForward']).describe('Tunnel type'),
   sshTunnelLocalHost: z.string().optional().describe('Local host'),
   sshTunnelLocalPort: z.number().optional().describe('Local port'),
   sshTunnelRemoteHost: z.string().optional().describe('Remote host'),
@@ -88,7 +88,9 @@ export const telnetBookmarkSchema = {
   username: z.string().optional().describe('Telnet username'),
   password: z.string().optional().describe('Telnet password'),
   loginPrompt: z.string().optional().describe('Login prompt regex'),
-  passwordPrompt: z.string().optional().describe('Password prompt regex')
+  passwordPrompt: z.string().optional().describe('Password prompt regex'),
+  txLineEnding: z.enum(['\r', '\n', '\r\n']).optional().describe('TX line ending appended on Enter: "\\r" (CR, default), "\\n" (LF), "\\r\\n" (CR+LF). Useful for telnet-to-serial-port servers'),
+  rxLineEnding: z.enum(['none', 'lf_to_crlf', 'cr_to_crlf']).optional().describe('RX line ending conversion: "none" (pass-through, default), "lf_to_crlf" (LF→CRLF for LF-only devices), "cr_to_crlf" (CR→CRLF for CR-only devices, which otherwise overwrite the current line)')
 }
 
 export const serialBookmarkSchema = {
