@@ -16,14 +16,20 @@
  *       rowButtons?: [{ label, action, danger? }]
  *     },
  *     buttons?: [{ label, action, danger? }],
- *     openTab?: object            // opened as a new terminal tab
+ *     openTab?: object,           // opened as a new terminal tab
+ *     bookmarks?: { bookmarks, bookmarkGroups }  // offered for import; a bare
+ *                                                 // bookmark array works too
  *   }
  *
  * Row buttons call the action with `(row, values)`, other buttons and the
  * submit call it with `(values)`. A row action's result is stacked on top of
  * the current one so there is always a way back.
+ *
+ * An offer (`aiConfig`, `bookmarks`) is drawn right below the message: a long
+ * details list or a table must not push it out of sight, since it is the part
+ * of the result that asks the user to do something.
  */
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   Alert,
   Button,
@@ -38,11 +44,16 @@ import {
   EyeInvisibleOutlined,
   EyeOutlined
 } from '@ant-design/icons'
-import { safeGetItemJSON, safeSetItemJSON } from '../../common/safe-local-storage'
+import {
+  rememberedValues,
+  rememberValues
+} from '../../common/widget-form-memory'
 import { copy } from '../../common/clipboard'
 import message from '../common/message'
 import openWidgetTab from './widget-open-tab'
 import WidgetAIConfig from './widget-ai-config'
+import WidgetBookmarks, { getBookmarkOffer } from './widget-bookmarks'
+import { widgetRowKey } from './row-key'
 import {
   renderConfigItem,
   configInitialValues
@@ -50,39 +61,14 @@ import {
 
 const e = window.translate
 
-function storageKey (id) {
-  return `widget-config-${id}`
-}
-
-// Only keys the manifest declares are restored: local storage outlives widget
-// versions, and a stale row must not become a ghost form value.
+// The form starts from the values the user last ran this widget with, so a
+// second visit does not have to be typed in again. `persist: false` in the
+// manifest turns that off (see common/widget-form-memory.js).
 function initialValues (info) {
-  const defaults = configInitialValues(info.configs)
-  if (!info.persist) {
-    return defaults
+  return {
+    ...configInitialValues(info.configs),
+    ...(info.persist === false ? {} : rememberedValues(info.id, info.configs))
   }
-  const saved = safeGetItemJSON(storageKey(info.id || ''), {}) || {}
-  const res = { ...defaults }
-  info.configs.forEach(config => {
-    if (Object.prototype.hasOwnProperty.call(saved, config.name)) {
-      res[config.name] = saved[config.name]
-    }
-  })
-  return res
-}
-
-function persistValues (info, values) {
-  if (!info.persist) {
-    return
-  }
-  const out = {}
-  info.configs.forEach(config => {
-    // a passphrase must never reach local storage
-    if (config.type !== 'password' && Object.prototype.hasOwnProperty.call(values, config.name)) {
-      out[config.name] = values[config.name]
-    }
-  })
-  safeSetItemJSON(storageKey(info.id || ''), out)
 }
 
 function SecretValue ({ value, revealed, onToggle }) {
@@ -135,6 +121,12 @@ function ResultButtons ({ buttons, busy, onAction }) {
 
 function ResultView ({ result, busy, onAction, onBack, canBack }) {
   const [revealed, setRevealed] = useState({})
+  // normalized once per result: fixBookmarkData copies every bookmark, and the
+  // panel re-renders on every reveal toggle
+  const bookmarkOffer = useMemo(
+    () => (result ? getBookmarkOffer(result.bookmarks, result.bookmarkGroups) : null),
+    [result]
+  )
   if (!result) {
     return null
   }
@@ -146,7 +138,7 @@ function ResultView ({ result, busy, onAction, onBack, canBack }) {
     buttons,
     aiConfig
   } = result
-  const known = msg || (details && details.length) || (table && table.rows) || (buttons && buttons.length) || aiConfig
+  const known = msg || (details && details.length) || (table && table.rows) || (buttons && buttons.length) || aiConfig || bookmarkOffer
   const toggle = (key) => setRevealed(old => ({ ...old, [key]: !old[key] }))
 
   return (
@@ -171,6 +163,7 @@ function ResultView ({ result, busy, onAction, onBack, canBack }) {
           className='mg1b'
         />
       )}
+      <WidgetBookmarks offer={bookmarkOffer} />
       {details && details.length > 0 && (
         <div className='cwf-details'>
           {details.map((item, i) => (
@@ -212,7 +205,7 @@ function ResultView ({ result, busy, onAction, onBack, canBack }) {
         <Table
           className='cwf-table'
           size='small'
-          rowKey={(row, i) => row.id || i}
+          rowKey={widgetRowKey}
           pagination={table.rows.length > 20 ? { pageSize: 20 } : false}
           dataSource={table.rows || []}
           columns={(table.columns || []).map((column, ci) => ({
@@ -292,10 +285,19 @@ export default function CustomWidgetForm ({ widget }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [results, setResults] = useState([])
+  const startValues = useMemo(() => initialValues({ ...info, id }), [id, info])
+
+  // Every edit is remembered, not just a submit: a value typed and left behind
+  // is what the user expects to find when the panel is opened again.
+  const remember = (vals) => {
+    if (info.persist !== false) {
+      rememberValues(id, info.configs, vals)
+    }
+  }
 
   const values = () => {
     const v = form.getFieldsValue()
-    persistValues({ ...info, id }, v)
+    remember(v)
     return v
   }
 
@@ -328,7 +330,7 @@ export default function CustomWidgetForm ({ widget }) {
   }
 
   const submit = async (formValues) => {
-    persistValues({ ...info, id }, formValues)
+    remember(formValues)
     await invoke(info.action || 'run', [formValues], 'replace')
   }
 
@@ -350,7 +352,8 @@ export default function CustomWidgetForm ({ widget }) {
       <Form
         form={form}
         onFinish={submit}
-        initialValues={initialValues({ ...info, id })}
+        onValuesChange={(_, allValues) => remember(allValues)}
+        initialValues={startValues}
         layout='horizontal'
       >
         {info.configs.map(config => renderConfigItem(config, form))}

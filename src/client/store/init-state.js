@@ -246,6 +246,10 @@ export default () => {
     // where running widgets write their logs, from the main process
     widgetLogPath: '',
     showSshConfigModal: false,
+    // pending bookmark export request from the AI agent: { filter, ids,
+    // requestedAt }, rendered by components/bookmark-export. Null when the
+    // panel is closed.
+    bookmarkExport: null,
 
     // batch inputs
     batchInputs: ls.getItemJSON(batchInputLsKey, []),
@@ -268,6 +272,9 @@ export default () => {
     widgets: [],
     widgetInstances: [],
     autoRunWidgets: [],
+    // name of the installed password manager widget, '' without one (the
+    // bookmark form shows "Ignore password manager" with one)
+    credentialProviderName: '',
     // move item
     openMoveModal: false,
     moveItem: null,

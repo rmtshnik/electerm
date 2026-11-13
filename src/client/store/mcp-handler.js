@@ -18,6 +18,15 @@ import {
 } from '../components/bookmark-form/fix-bookmark-default'
 import newTerm from '../common/new-terminal'
 import dangerousSessionFields from '../common/dangerous-session-fields'
+import {
+  describeBookmarkExportFilter,
+  filterBookmarksForExport
+} from '../common/bookmark-export-filter'
+import {
+  decideTransferApproval,
+  normalizeConflictPolicy
+} from '../common/mcp-transfer-guard.js'
+import confirmMcpTransfer from '../components/common/mcp-transfer-approval.jsx'
 
 // Dangerous props that must not be accepted from MCP/AI tool calls.
 // Shared with src/client/store/tab.js and the quick connect parser so the
@@ -123,7 +132,12 @@ export default Store => {
       try {
         const { requestId, action, data } = request || {}
         if (action === 'tool-call') {
-          window.store.handleMcpToolCall(requestId, data && data.toolName, data && data.args)
+          window.store.handleMcpToolCall(
+            requestId,
+            data && data.toolName,
+            data && data.args,
+            data && data.transferPolicy
+          )
         }
       } catch (err) {
         // Never let a malformed IPC payload break the UI thread
@@ -133,7 +147,7 @@ export default Store => {
   }
 
   // Handle individual tool calls
-  Store.prototype.handleMcpToolCall = async function (requestId, toolName, args) {
+  Store.prototype.handleMcpToolCall = async function (requestId, toolName, args, transferPolicy) {
     const { store } = window
     args = args || {}
 
@@ -267,10 +281,10 @@ export default Store => {
 
         // File transfer operations
         case 'sftp_upload':
-          result = await store.mcpSftpUpload(args)
+          result = await store.mcpSftpUpload(args, transferPolicy)
           break
         case 'sftp_download':
-          result = await store.mcpSftpDownload(args)
+          result = await store.mcpSftpDownload(args, transferPolicy)
           break
 
         // Transfer list/history operations
@@ -408,6 +422,46 @@ export default Store => {
     return {
       success: true,
       message: `Opened bookmark "${bookmark.title}"`
+    }
+  }
+
+  // Open the export panel for a filtered set of bookmarks.
+  //
+  // The caller (the AI agent) only supplies a filter. Matching runs here,
+  // against the live store, and the panel is what the user acts on -- so the
+  // reply can carry counts and nothing else. That is the point: a bookmark
+  // export is exactly the request that would otherwise tempt a model into
+  // reading every credential, and this path never hands one over.
+  Store.prototype.mcpExportBookmarks = function (args) {
+    const { store } = window
+    const { ids, byType, total, filter } = filterBookmarksForExport(
+      store.bookmarks,
+      store.bookmarkGroups,
+      args || {}
+    )
+    const described = describeBookmarkExportFilter(filter)
+
+    if (!total) {
+      return {
+        matched: 0,
+        filter: described,
+        panelOpened: false,
+        message: 'No bookmark matches that filter, so no export panel was opened.'
+      }
+    }
+
+    store.bookmarkExport = {
+      filter,
+      ids,
+      requestedAt: Date.now()
+    }
+
+    return {
+      matched: total,
+      byType,
+      filter: described,
+      panelOpened: true,
+      message: 'The export panel is open with the matches. The user reviews and confirms the export there. Bookmark field values are not available to you.'
     }
   }
 
@@ -1378,7 +1432,50 @@ export default Store => {
 
   // ==================== File Transfer APIs ====================
 
-  Store.prototype.mcpSftpUpload = async function (args) {
+  // A transfer asked for by an MCP client is not the same thing as one asked
+  // for by the human in front of the machine: the client may be acting on
+  // instructions hidden in a file it was just asked to summarise. So:
+  //
+  //   1. a destination that the host executes (shell rc, ssh trust store,
+  //      autostart) or a source that holds credentials always asks first;
+  //   2. whitelist mode asks for every transfer;
+  //   3. an overwrite falls through to the ordinary transfer conflict dialog,
+  //      because no resolution policy is attached to the transfer item;
+  //   4. only `autoConfirmTransfers` (off by default) attaches that policy,
+  //      and never for a path covered by 1.
+  //
+  // Returns the per-transfer `resolvePolicy` to attach, or null.
+  Store.prototype.mcpApproveTransfer = async function (spec, transferOptions) {
+    const options = transferOptions || {}
+    const verdict = decideTransferApproval({
+      direction: spec.direction,
+      fromPath: spec.fromPath,
+      toPath: spec.toPath,
+      strict: !!options.strict,
+      homeDir: window.pre && window.pre.homeOrTmp
+    })
+    const sensitive = verdict.reasons.some(reason => reason.code !== 'strict-mode')
+    if (verdict.requireApproval) {
+      const approved = await confirmMcpTransfer({
+        direction: spec.direction,
+        fromPath: spec.fromPath,
+        toPath: spec.toPath,
+        reasons: verdict.reasons,
+        host: spec.host
+      })
+      if (!approved) {
+        throw new Error(
+          `MCP ${spec.direction} refused by the user: ${spec.fromPath} -> ${spec.toPath}`
+        )
+      }
+    }
+    if (!options.autoConfirm || sensitive) {
+      return null
+    }
+    return normalizeConflictPolicy(spec.conflictPolicy)
+  }
+
+  Store.prototype.mcpSftpUpload = async function (args, transferOptions) {
     const { store } = window
     const { tab, tabId } = store.mcpGetSshSftpRef(args.tabId)
     const localPath = args.localPath
@@ -1389,8 +1486,6 @@ export default Store => {
     if (!remotePath) {
       throw new Error('remotePath is required')
     }
-
-    window._transferConflictPolicy = args.conflictPolicy || 'mergeOrOverwriteAll'
 
     const fromFile = await getLocalFileInfo(localPath)
     const transferItem = {
@@ -1413,6 +1508,17 @@ export default Store => {
       operation: ''
     }
 
+    const resolvePolicy = await store.mcpApproveTransfer({
+      direction: 'upload',
+      fromPath: localPath,
+      toPath: remotePath,
+      conflictPolicy: args.conflictPolicy,
+      host: tab.host
+    }, transferOptions)
+    if (resolvePolicy) {
+      transferItem.resolvePolicy = resolvePolicy
+    }
+
     store.addTransferList([transferItem])
 
     return {
@@ -1423,7 +1529,7 @@ export default Store => {
     }
   }
 
-  Store.prototype.mcpSftpDownload = async function (args) {
+  Store.prototype.mcpSftpDownload = async function (args, transferOptions) {
     const { store } = window
     const { sftp, tab, tabId } = store.mcpGetSshSftpRef(args.tabId) // sftp used for getRemoteFileInfo
     const remotePath = args.remotePath
@@ -1434,8 +1540,6 @@ export default Store => {
     if (!localPath) {
       throw new Error('localPath is required')
     }
-
-    window._transferConflictPolicy = args.conflictPolicy || 'mergeOrOverwriteAll'
 
     const fromFile = await getRemoteFileInfo(sftp, remotePath)
     const transferItem = {
@@ -1453,6 +1557,17 @@ export default Store => {
       id: uid(),
       title: tab.title,
       tabId
+    }
+
+    const resolvePolicy = await store.mcpApproveTransfer({
+      direction: 'download',
+      fromPath: remotePath,
+      toPath: localPath,
+      conflictPolicy: args.conflictPolicy,
+      host: tab.host
+    }, transferOptions)
+    if (resolvePolicy) {
+      transferItem.resolvePolicy = resolvePolicy
     }
 
     store.addTransferList([transferItem])

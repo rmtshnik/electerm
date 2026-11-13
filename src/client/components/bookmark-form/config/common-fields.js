@@ -10,6 +10,7 @@ import {
 import defaultSettings from '../../../common/default-setting'
 import encodes from '../common/encodes'
 import { isEmpty } from 'lodash-es'
+import { hasCredentialProvider } from '../../../common/credential-provider.jsx'
 
 const e = window.translate
 
@@ -43,7 +44,7 @@ const commonLangOptions = [
 export const commonFields = {
   // Basic connection fields
   host: {
-    type: 'colorTitle',
+    type: 'input',
     name: 'host',
     label: () => e('host'),
     rules: [{ required: true, message: e('host') + ' required' }]
@@ -229,6 +230,17 @@ export const commonFields = {
     name: '__x11__',
     label: 'x11'
   },
+  // this bookmark asks a password manager widget for its password; shown only
+  // with one installed, off unless the user asks for it
+  usePasswordManager: {
+    type: 'switch',
+    name: 'usePasswordManager',
+    label: () => e('usePasswordManager'),
+    valuePropName: 'checked',
+    get hidden () {
+      return !hasCredentialProvider()
+    }
+  },
 
   // Dynamic sections
   quickCommands: {
@@ -258,6 +270,13 @@ export const commonFields = {
   triggers: {
     type: 'triggers',
     name: 'triggers',
+    label: ''
+  },
+
+  // per-bookmark monitor commands, polled while the session is open
+  watchers: {
+    type: 'watchers',
+    name: '__watchers__',
     label: ''
   },
 
@@ -339,7 +358,7 @@ export const basicAuthFields = [
 
 export const sshAuthFields = [
   commonFields.category,
-  commonFields.title,
+  commonFields.colorTitle,
   { ...commonFields.host, type: 'sshHostSelector' },
   commonFields.username,
   { type: 'sshAuthTypeSelector', name: 'authType', label: '' },
@@ -350,6 +369,7 @@ export const sshAuthFields = [
     name: 'useSshAgent'
   },
   { type: 'switch', name: 'isMFA', label: () => e('MFA/OTP'), valuePropName: 'checked' },
+  commonFields.usePasswordManager,
   commonFields.runScripts,
   commonFields.description,
   commonFields.setEnv,
@@ -364,10 +384,11 @@ export const sshAuthFields = [
 // Telnet auth fields - similar to SSH but with filtered auth types (no privateKey)
 export const telnetAuthFields = [
   commonFields.category,
-  commonFields.title,
+  commonFields.colorTitle,
   commonFields.host,
   commonFields.username,
   commonFields.password,
+  commonFields.usePasswordManager,
   commonFields.loginPrompt,
   commonFields.passwordPrompt,
   { type: 'profileItem', name: '__profile__', label: '', profileFilter: d => !isEmpty(d.telnet) },
@@ -393,6 +414,12 @@ export const triggersTab = () => ({
   key: 'triggers',
   label: e('triggers'),
   fields: [commonFields.triggers]
+})
+
+export const watchersTab = () => ({
+  key: 'watchers',
+  label: 'Watchers',
+  fields: [commonFields.watchers]
 })
 
 export const sshTunnelTab = () => ({

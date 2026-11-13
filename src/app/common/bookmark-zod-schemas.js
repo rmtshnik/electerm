@@ -10,6 +10,14 @@ const quickCommandSchema = z.object({
   command: z.string().describe('Command')
 })
 
+const watcherSchema = z.object({
+  id: z.string().describe('Stable id of this watcher'),
+  name: z.string().optional().describe('Display name, defaults to the command name'),
+  command: z.string().describe('Shell command to poll, e.g. `nvidia-smi -i 0`'),
+  interval: z.number().optional().describe('Refresh interval in seconds, default 5'),
+  enabled: z.boolean().optional().describe('Poll this watcher, default is true')
+})
+
 const sshTunnelSchema = z.object({
   sshTunnel: z.enum(['forwardRemoteToLocal', 'forwardLocalToRemote', 'dynamicForward', 'remoteDynamicForward']).describe('Tunnel type'),
   sshTunnelLocalHost: z.string().optional().describe('Local host'),
@@ -68,6 +76,7 @@ const sshBookmarkSchema = {
   cipher: z.array(z.string()).optional().describe('Cipher list'),
   compress: z.array(z.string()).optional().describe('Compression algorithms'),
   quickCommands: z.array(quickCommandSchema).optional().describe('Quick commands'),
+  watchers: z.array(watcherSchema).optional().describe('Custom monitor watchers shown in the monitor bar and info panel while this session is open'),
   x11: z.boolean().optional().describe('Enable x11 forwarding, default is false'),
   term: z.string().optional().describe('Terminal type, default is xterm-256color'),
   displayRaw: z.boolean().optional().describe('Display raw output, default is false'),
@@ -75,6 +84,7 @@ const sshBookmarkSchema = {
   envLang: z.string().optional().describe('ENV LANG, default is en_US.UTF-8'),
   // setEnv: z.string().optional().describe('Environment variables, format: KEY1=VALUE1 KEY2=VALUE2'),
   color: z.string().optional().describe('Tag color, like #000000'),
+  icon: z.string().optional().describe('Icon of the bookmark: `icon:<name>` for a built-in icon (see electerm-icons, e.g. `icon:ubuntu`), or an absolute path of a local image file. Takes precedence over the colour'),
   // interactiveValues: z.string().optional().describe('Strings separated by newline'),
   sshTunnels: z.array(sshTunnelSchema).optional().describe('SSH tunnel definitions'),
   connectionHoppings: z.array(connectionHoppingSchema).optional().describe('Connection hopping definitions')

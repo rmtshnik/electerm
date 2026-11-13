@@ -28,6 +28,7 @@ const bookmarkSchema = {
     compress: 'array - compression algorithms (zlib@openssh.com, zlib, none)',
     runScripts: 'array - run scripts after connected ({delay,script})',
     quickCommands: 'array - quick commands ({name,command})',
+    watchers: 'array - custom monitor watchers polled while the session is open ({id,name,command,interval,enabled}), interval in seconds, shown in the monitor bar and the info panel',
     triggers: 'array - declarative auto triggers ({id,name,enabled,match:{type:text|regex,value,caseSensitive},action:{type:send|notify,value},sendEnter,mode:repeat|once|cooldown,cooldownMs})',
     proxy: 'string - proxy address (socks5://...)',
     proxyCommand: 'string - ssh proxy command, supports %h (host) %p (port) %r (username) placeholders, e.g. `netbird ssh proxy %h %p` or `cloudflared access ssh --hostname %h`',
@@ -38,6 +39,7 @@ const bookmarkSchema = {
     envLang: 'string - ENV LANG, default is en_US.UTF-8',
     setEnv: 'string - environment variables, format: `KEY1=VALUE1 KEY2=VALUE2`',
     color: 'string - tag color, like #000000',
+    icon: 'string - icon of the bookmark: `icon:<name>` for a built-in icon (e.g. `icon:ubuntu`), or an absolute path of a local image file; takes precedence over the colour',
     interactiveValues: 'strings separated by newline'
   },
   sshTunnelsItem: {
