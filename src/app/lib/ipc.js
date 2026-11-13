@@ -14,7 +14,9 @@ const {
 const globalState = require('./glob-state')
 const log = require('../common/log')
 const ipcSyncFuncs = require('./ipc-sync')
-const { dbAction } = require('./db')
+const { dbAction, tables } = require('./db')
+const { createLoadInitData } = require('./init-data')
+const loadInitData = createLoadInitData(dbAction, tables)
 const { listItermThemes } = require('./iterm-theme')
 const installSrc = require('./install-src')
 const { getConfig } = require('./get-config')
@@ -27,6 +29,7 @@ const {
   callWidgetFunc,
   importWidget,
   importWidgetFromSource,
+  importWidgetFromRegistry,
   deleteWidget
 } = require('../widgets/load-widget')
 const widgetLog = require('../widgets/instance-log')
@@ -46,6 +49,7 @@ const {
 const { saveUserConfig } = require('./user-config-controller')
 const { changeHotkeyReg, initShortCut } = require('./shortcut')
 const lastStateManager = require('./last-state')
+const { checkHost } = require('./check-host')
 const { createDialogLastDir } = require('./dialog-last-dir')
 const {
   registerDeepLink,
@@ -249,6 +253,7 @@ function initIpc () {
     checkDbUpgrade: (...args) => upgrade().checkDbUpgrade(...args),
     checkMigrate,
     migrate,
+    checkHost,
     getExitStatus: () => globalState.get('exitStatus'),
     setExitStatus: (status) => {
       globalState.set('exitStatus', status)
@@ -258,6 +263,7 @@ function initIpc () {
     safeEncrypt: (str) => safeEncrypt(str),
     safeDecrypt: (str) => safeDecrypt(str),
     dbAction,
+    loadInitData,
     getScreenSize,
     closeApp: (closeAction = '') => {
       globalState.set('closeAction', closeAction)
@@ -332,6 +338,7 @@ function initIpc () {
     callWidgetFunc,
     importWidget,
     importWidgetFromSource,
+    importWidgetFromRegistry,
     deleteWidget,
     registerDeepLink,
     unregisterDeepLink,
